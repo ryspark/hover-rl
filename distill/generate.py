@@ -28,7 +28,6 @@ async def _call_model(query, client, model, sephamore):
             print(f"error: timeout occurred for query: {query[:50]}...")
             raise ValueError("timeout")
         except Exception as e:
-            raise e
             print(f"error: {e} for query: {query[:50]}...")
             raise ValueError("error")
 
@@ -39,6 +38,7 @@ async def _answer_question(claim, retriever, client, model, sephamore, n_hops, p
         docs = []
         pairs = []
         answers = {}
+        types = []
         result = ""
         for i in range(n_hops):
             # tool call first since we have no info to condition on
@@ -49,6 +49,7 @@ async def _answer_question(claim, retriever, client, model, sephamore, n_hops, p
             query = await _call_model(prompt, client, model, sephamore)
             docs = [text['long_text'] for text in retriever(query, k=3)]
             pairs.append((prompt, query))
+            types.append("tool")
 
             # then generate a response
             prompt = prompts["generate"].format(
@@ -58,6 +59,7 @@ async def _answer_question(claim, retriever, client, model, sephamore, n_hops, p
             )
             cot = await _call_model(prompt, client, model, sephamore)
             pairs.append((prompt, cot))
+            types.append("response")
 
             # optionally generate a rollout (decision) from here
             if early_rollouts or i == n_hops - 1:
@@ -68,14 +70,16 @@ async def _answer_question(claim, retriever, client, model, sephamore, n_hops, p
                 decision = await _call_model(prompt, client, model, sephamore)
                 result = decision.replace(".", "").strip()
                 answers[i] = result
-                pairs.append((prompt, result))
+                if i == n_hops - 1:
+                    pairs.append((prompt, result))
+                    types.append("decision")
 
     except ValueError:
-        result = ""
         pairs = []
+        types = []
         answers = {}
 
-    return {"question": claim, "distill_answer": result, "sft_pairs": pairs, "distill_answers": answers}
+    return {"question": claim, "distill_answer": result, "sft_pairs": pairs, "distill_answers": answers, "types": types}
 
 
 async def _generate_traces(inputs, retriever, client, model, sephamore, n_hops, prompts, early_rollouts):
@@ -86,7 +90,7 @@ async def _generate_traces(inputs, retriever, client, model, sephamore, n_hops, 
         for claim, n_hop in zip(inputs, n_hops)
     ]
     results = []
-    for coro in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="Generating"):
+    for coro in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="generating"):
         result = await coro
         results.append(result)
     return results
@@ -162,8 +166,16 @@ def generate_traces(
             final_ans = result['distill_answer']
             for i, (inp, out) in enumerate(result['sft_pairs']):
                 ans = result['distill_answers'].get(i, final_ans)
-                info = dict(row) | {'input': inp, 'output': out, "distill_answer": ans}
+                typ = result['types'][i]
+                info = dict(row) | {'input': inp, 'output': out, "distill_answer": ans, "type": typ}
                 examples.append(info)
+
+    n_correct = sum(
+        int(row['distill_answer'] == row['complete_answer'])
+        for row in examples if row['type'] == 'decision'
+    )
+    n_total = sum(row['type'] == 'decision' for row in examples)
+    print(f"fraction correct: {n_correct} / {n_total}")
 
     # save unrolled trajectories, both unfiltered and filtered
     dump = dump_file.format(
@@ -194,5 +206,5 @@ def generate_traces(
 if __name__ == '__main__':
     dataset = HoverRetrievalDataset()
     #generate_traces(dataset, model="gpt-4o-mini-2024-07-18", batch_size=100, split="train")
-    #generate_traces(dataset, model="qwen2.5-3b-base", batch_size=128, split="dev", port=30000, limit=512)
-    generate_traces(dataset, model="gpt-4o-mini-2024-07-18", batch_size=128, split="dev", limit=512)
+    #generate_traces(dataset, model="gpt-4o-mini-2024-07-18", batch_size=128, split="dev", limit=512)
+    generate_traces(dataset, model="qwen2.5-3b-sft", batch_size=128, split="dev", port=30000, limit=512)
