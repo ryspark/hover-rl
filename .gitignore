@@ -1,0 +1,9 @@
+env
+slurm
+data
+figs
+cache
+models
+wandb
+outputs
+__pycache__
