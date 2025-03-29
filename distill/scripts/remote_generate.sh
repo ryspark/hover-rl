@@ -8,8 +8,8 @@
 #SBATCH --job-name=sft
 #SBATCH --output=/iris/u/rypark/code/hover-rl/slurm/%j.out
 
-cd /iris/u/rypark/code/hover-rl/distill
+ulimit -n 64000
 source ~/.bashrc
+cd /iris/u/rypark/code/hover-rl/distill
 source ../env/bin/activate
-echo "STARTING..."
 python3 generate.py
