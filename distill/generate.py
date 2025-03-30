@@ -11,6 +11,8 @@ import json
 async def _call_model(query, client, model, sephamore, tools=None, tool_choice=None, tool_strict=True):
     async with sephamore:
         try:
+            if tool_choice is None and "qwen" in model:
+                tool_choice = "none"
             response = await asyncio.wait_for(
                 client.chat.completions.create(
                     model=model,
@@ -21,7 +23,7 @@ async def _call_model(query, client, model, sephamore, tools=None, tool_choice=N
                     tools=tools,
                     tool_choice=tool_choice
                 ),
-                timeout=100
+                timeout=1000
             )
 
             query = ""
@@ -240,6 +242,6 @@ def generate_traces(
 if __name__ == '__main__':
     dataset = HoverRetrievalDataset()
     # generate_traces(dataset, model="o3-mini-2025-01-31", batch_size=100, split="train")
-    generate_traces(dataset, model="gpt-4o-mini-2024-07-18", batch_size=128, split="dev", limit=512)
-    generate_traces(dataset, model="o3-mini-2025-01-31", batch_size=128, split="dev", limit=512)
+    # generate_traces(dataset, model="gpt-4o-mini-2024-07-18", batch_size=128, split="dev", limit=512)
+    #generate_traces(dataset, model="o3-mini-2025-01-31", batch_size=128, split="dev", limit=512)
     generate_traces(dataset, model="qwen2.5-3b-base", batch_size=128, split="dev", port=30000, limit=512)
