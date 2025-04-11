@@ -5,7 +5,7 @@
 #SBATCH --mem=128G
 #SBATCH --gres=gpu:h100:1
 #SBATCH --time=240:00:00
-#SBATCH --job-name=sft
+#SBATCH --job-name=gen
 #SBATCH --output=/iris/u/rypark/code/hover-rl/slurm/%j.out
 
 ulimit -n 64000
@@ -13,7 +13,7 @@ source ~/.bashrc
 conda activate sglang
 pwd
 
-python -m sglang.launch_server --model-path Qwen/Qwen2.5-3B --port 30000 --host 0.0.0.0 &
+python -m sglang.launch_server --model-path /iris/u/rypark/code/hover-rl/models/qwen2.5_0.5b_base__sft__o3_mini_traces__grpo_broken --port 30000 --host 0.0.0.0 &
 SERVER_PID=$!
 
 echo "STARTED SERVER with PID $SERVER_PID"

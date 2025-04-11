@@ -244,4 +244,5 @@ if __name__ == '__main__':
     # generate_traces(dataset, model="o3-mini-2025-01-31", batch_size=100, split="train")
     # generate_traces(dataset, model="gpt-4o-mini-2024-07-18", batch_size=128, split="dev", limit=512)
     #generate_traces(dataset, model="o3-mini-2025-01-31", batch_size=128, split="dev", limit=512)
-    generate_traces(dataset, model="qwen2.5-3b-base", batch_size=128, split="dev", port=30000, limit=512)
+    #generate_traces(dataset, model="qwen2.5-3b-base", batch_size=128, split="dev", port=30000, limit=512)
+    generate_traces(dataset, model="qwen2.5-0.5b-sft-o3-mini-grpo-broken", batch_size=128, split="dev", port=30000, limit=512)
